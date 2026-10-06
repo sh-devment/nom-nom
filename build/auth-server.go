@@ -64,5 +64,5 @@ func handleOpenApps(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not open app", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "https://menu.sh-development.ru/?code="+code, http.StatusFound)
+	http.Redirect(w, r, "https://menu."+domain+"/?code="+code, http.StatusFound)
 }
