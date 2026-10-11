@@ -155,12 +155,12 @@ func main() {
 	}
 	jwtSecret = []byte(secretKey)
 
-	if m := os.Getenv("SCAN_MODEL"); m != "" {
-		scanModel = m
+	aiProvider = os.Getenv("AI_PROVIDER")
+	if aiProvider == "" {
+		aiProvider = "gemini"
 	}
-
-	aiProxyURL = os.Getenv("AI_PROXY_URL")
-	aiProxySecret = os.Getenv("AI_PROXY_SECRET")
+	aiModel = os.Getenv("AI_MODEL")
+	aiKey = os.Getenv("AI_KEY")
 
 	// Free AI ops granted to a new user. Must be set before initDB() — appMigrate()
 	// bakes it into the users AFTER INSERT trigger.

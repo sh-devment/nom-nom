@@ -295,26 +295,26 @@ func handleScan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var content []map[string]any
+	var in scanInput
 	switch req.Mode {
 	case "photo":
 		if req.Image == "" {
 			writeErr(w, http.StatusBadRequest, "no image")
 			return
 		}
-		content = photoContent(req.Image, req.MediaType)
+		in = photoInput(req.Image, req.MediaType)
 	case "text":
 		if req.Text == "" {
 			writeErr(w, http.StatusBadRequest, "no text")
 			return
 		}
-		content = textContent(req.Text)
+		in = textInput(req.Text)
 	default:
 		writeErr(w, http.StatusBadRequest, "bad mode")
 		return
 	}
 
-	result, err := scanWithClaude(r.Context(), content)
+	result, err := scanAI(r.Context(), in)
 	if err != nil {
 		if errors.Is(err, errNoCredits) {
 			log.Printf("scan uid=%d mode=%s result=error reason=no_credits", uid, req.Mode)

@@ -528,7 +528,7 @@ if (profileBtn) {
 
   // ── AI scan (photo + text) → prefill the meal sheet for review ──
   // The full-screen loader blocks all input while the scan runs. The abort is a
-  // client backstop just above the server's own 20s deadline on the Claude call,
+  // client backstop just above the server's own 20s deadline on the AI call,
   // so a wedged request can never freeze the app.
   const SCAN_ABORT_MS = 25000;
 
