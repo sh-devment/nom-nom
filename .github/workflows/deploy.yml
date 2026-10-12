@@ -27,7 +27,7 @@ jobs:
           # Имя приложения: repo-level variable, задаётся вручную (обязательно).
           APP: ${{ vars.APP }}
           # Какие переменные записать в $APP.env (всё ниже в этом блоке).
-          ENV_KEYS: REGION PORT AUTH_URL AUTH_INTERNAL APP_URL APP_TOKEN SECRET_KEY AI_PROVIDER AI_MODEL AI_KEY FREE_SCANS
+          ENV_KEYS: REGION PORT AUTH_URL AUTH_INTERNAL APP_URL APP_TOKEN SECRET_KEY AI_PROVIDER AI_MODEL AI_KEY AI_GATEWAY_URL AI_GATEWAY_TOKEN FREE_SCANS
 
           # Регион наследуется из matrix — отдельно заводить не нужно.
           REGION: ${{ matrix.region }}
@@ -41,5 +41,8 @@ jobs:
           AI_PROVIDER: ${{ vars.AI_PROVIDER }}
           AI_MODEL: ${{ vars.AI_MODEL }}
           AI_KEY: ${{ secrets.AI_KEY }}
+          # Все запросы к ИИ идут через Cloudflare AI Gateway (Google режет часть IP по геолокации).
+          AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
+          AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
           FREE_SCANS: ${{ vars.FREE_SCANS }}
         run: ./bin/deploy.sh

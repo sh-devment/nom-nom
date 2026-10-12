@@ -7,6 +7,11 @@ package main
 // The provider is picked per deployment (each region has its own GitHub
 // environment): AI_PROVIDER + AI_MODEL + AI_KEY. Only "gemini" exists for now;
 // another provider is one more case in scanAI.
+//
+// Every call goes through a Cloudflare AI Gateway (AI_GATEWAY_URL +
+// AI_GATEWAY_TOKEN), never straight to the provider: Google geolocates some of
+// our servers' IPs to unsupported countries and rejects them with 400
+// "User location is not supported". The gateway calls Google from Cloudflare.
 
 import (
 	"bytes"
@@ -27,6 +32,9 @@ var (
 	aiProvider string // AI_PROVIDER: gemini
 	aiModel    string // AI_MODEL, e.g. gemini-2.5-flash
 	aiKey      string // AI_KEY: the provider's API key
+
+	aiGatewayURL   string // AI_GATEWAY_URL: gateway base up to the provider, no trailing slash
+	aiGatewayToken string // AI_GATEWAY_TOKEN: cf-aig-authorization token (authenticated gateway)
 )
 
 var errNoCredits = errors.New("no credits")
@@ -76,8 +84,8 @@ const scanTimeout = 20 * time.Second
 // reply. The context ties the upstream call to the HTTP request: if the browser
 // gives up and aborts, the AI call is canceled too instead of burning tokens.
 func scanAI(ctx context.Context, in scanInput) (*ScanResult, error) {
-	if aiModel == "" || aiKey == "" {
-		return nil, fmt.Errorf("AI_MODEL / AI_KEY not set")
+	if aiModel == "" || aiKey == "" || aiGatewayURL == "" {
+		return nil, fmt.Errorf("AI_MODEL / AI_KEY / AI_GATEWAY_URL not set")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, scanTimeout)
@@ -97,7 +105,9 @@ func scanAI(ctx context.Context, in scanInput) (*ScanResult, error) {
 	return parseScan(text)
 }
 
-const geminiAPI = "https://generativelanguage.googleapis.com/v1beta/models/"
+// geminiPath is appended to AI_GATEWAY_URL (…/google-ai-studio); the gateway
+// forwards it to generativelanguage.googleapis.com as is.
+const geminiPath = "/v1beta/models/"
 
 // askGemini calls generateContent and returns the reply text.
 func askGemini(ctx context.Context, in scanInput) (string, error) {
@@ -122,9 +132,12 @@ func askGemini(ctx context.Context, in scanInput) (string, error) {
 	}
 
 	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequestWithContext(ctx, "POST", geminiAPI+aiModel+":generateContent", bytes.NewReader(body))
+	req, _ := http.NewRequestWithContext(ctx, "POST", aiGatewayURL+geminiPath+aiModel+":generateContent", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-goog-api-key", aiKey)
+	if aiGatewayToken != "" {
+		req.Header.Set("cf-aig-authorization", "Bearer "+aiGatewayToken)
+	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

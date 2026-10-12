@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -161,6 +162,8 @@ func main() {
 	}
 	aiModel = os.Getenv("AI_MODEL")
 	aiKey = os.Getenv("AI_KEY")
+	aiGatewayURL = strings.TrimRight(os.Getenv("AI_GATEWAY_URL"), "/")
+	aiGatewayToken = os.Getenv("AI_GATEWAY_TOKEN")
 
 	// Free AI ops granted to a new user. Must be set before initDB() — appMigrate()
 	// bakes it into the users AFTER INSERT trigger.
