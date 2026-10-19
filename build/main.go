@@ -39,23 +39,10 @@ var (
 )
 
 type pageData struct {
-	User    *User
-	Error   string
-	Version string // buildTime — cache-bust token for static assets (?v=)
-	Domain  string // sh-development.<region>
-}
-
-// domain is the ecosystem zone this instance serves. Every app sits on the same
-// subdomain in both zones, so sh-development.ru / .com links follow REGION
-// (ru | com, set by the deploy matrix). Empty REGION (local dev) means ru.
-var domain string
-
-func initDomain() {
-	region := os.Getenv("REGION")
-	if region == "" {
-		region = "ru"
-	}
-	domain = "sh-development." + region
+	User       *User
+	Error      string
+	Version    string // buildTime — cache-bust token for static assets (?v=)
+	*regionDef        // Domain, Lang, Text… — see region.go
 }
 
 func initTemplate() {
@@ -113,7 +100,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	// HTML must always revalidate so the fresh ?v= asset token reaches the browser.
 	w.Header().Set("Cache-Control", "no-cache")
-	tmpl.Execute(w, pageData{User: user, Version: buildTime, Domain: domain}) //nolint:errcheck
+	tmpl.Execute(w, pageData{User: user, Version: buildTime, regionDef: region}) //nolint:errcheck
 }
 
 // ── main ──────────────────────────────────────────────────────────────────────
@@ -148,7 +135,7 @@ func main() {
 	authInternal = os.Getenv("AUTH_INTERNAL")
 	appURL = os.Getenv("APP_URL")
 	appToken = os.Getenv("APP_TOKEN")
-	initDomain()
+	initRegion()
 
 	secretKey := os.Getenv("SECRET_KEY")
 	if secretKey == "" {

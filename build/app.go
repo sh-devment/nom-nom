@@ -88,8 +88,8 @@ func handleState(w http.ResponseWriter, r *http.Request) {
 		"goals":     goals,
 		"meals":     meals,
 		"favorites": favs,
-		"weights":   weights,     // newest first; [0] may be today (editable row #1)
-		"day":       mskDay(),    // client marks which entry is "today"
+		"weights":   weights,  // newest first; [0] may be today (editable row #1)
+		"day":       mskDay(), // client marks which entry is "today"
 	})
 }
 
@@ -101,7 +101,7 @@ func decodeMeal(r *http.Request) (MealInput, bool) {
 		return in, false
 	}
 	if in.Name == "" {
-		in.Name = "Блюдо"
+		in.Name = region.Text.JS.DefaultMeal
 	}
 	return in, true
 }
@@ -273,6 +273,15 @@ type scanReq struct {
 // meal sheet from the result and the user saves via POST /api/meal.
 func handleScan(w http.ResponseWriter, r *http.Request) {
 	uid := sessionUserID(r)
+
+	// The page never calls this in a region without AI scans — both buttons
+	// show a popup instead — so this is the server side of the same rule.
+	if !region.AIScan {
+		log.Printf("scan uid=%d result=blocked reason=region", uid)
+		writeErr(w, http.StatusForbidden, region.Text.JS.Unavailable)
+		return
+	}
+
 	var req scanReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad request")
@@ -287,10 +296,10 @@ func handleScan(w http.ResponseWriter, r *http.Request) {
 	if ok, reason := canScan(status, aiUsesToday(uid)); !ok {
 		if reason == "daily_limit" {
 			log.Printf("scan uid=%d mode=%s result=blocked reason=daily_limit", uid, req.Mode)
-			writeErr(w, http.StatusTooManyRequests, "Дневной лимит сканов достигнут")
+			writeErr(w, http.StatusTooManyRequests, region.Server.DailyLimit)
 		} else {
 			log.Printf("scan uid=%d mode=%s result=blocked reason=no_scans", uid, req.Mode)
-			writeErr(w, http.StatusForbidden, "Бесплатные сканы закончились")
+			writeErr(w, http.StatusForbidden, region.Server.NoFreeScans)
 		}
 		return
 	}
@@ -318,12 +327,12 @@ func handleScan(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, errNoCredits) {
 			log.Printf("scan uid=%d mode=%s result=error reason=no_credits", uid, req.Mode)
-			writeErr(w, http.StatusPaymentRequired, "Сервис временно недоступен")
+			writeErr(w, http.StatusPaymentRequired, region.Server.ServiceDown)
 			return
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Printf("scan uid=%d mode=%s result=error reason=timeout", uid, req.Mode)
-			writeErr(w, http.StatusGatewayTimeout, "Не дождались ответа от ИИ")
+			writeErr(w, http.StatusGatewayTimeout, region.Server.AITimeout)
 			return
 		}
 		log.Printf("scan uid=%d mode=%s result=error error=%q", uid, req.Mode, err)

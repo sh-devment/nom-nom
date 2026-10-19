@@ -39,9 +39,12 @@ var (
 
 var errNoCredits = errors.New("no credits")
 
-const scanSystemPrompt = `You are a nutrition expert. Estimate the nutritional content of the food for the visible/described portion.
+// scanSystemPrompt names the dish in the region's language (region.AIFoodLang).
+func scanSystemPrompt() string {
+	return `You are a nutrition expert. Estimate the nutritional content of the food for the visible/described portion.
 Respond with ONLY a valid JSON object in this exact format, no other text:
-{"name": "food name in Russian", "grams": estimated_grams, "calories": estimated_calories, "proteins": estimated_proteins_g, "fats": estimated_fats_g, "carbs": estimated_carbs_g}`
+{"name": "food name in ` + region.AIFoodLang + `", "grams": estimated_grams, "calories": estimated_calories, "proteins": estimated_proteins_g, "fats": estimated_fats_g, "carbs": estimated_carbs_g}`
+}
 
 // ScanResult is what the frontend meal sheet consumes (mirrors MealInput + carbs).
 type ScanResult struct {
@@ -121,7 +124,7 @@ func askGemini(ctx context.Context, in scanInput) (string, error) {
 
 	payload := map[string]any{
 		"systemInstruction": map[string]any{
-			"parts": []map[string]any{{"text": scanSystemPrompt}},
+			"parts": []map[string]any{{"text": scanSystemPrompt()}},
 		},
 		"contents": []map[string]any{
 			{"role": "user", "parts": parts},

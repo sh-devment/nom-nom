@@ -79,8 +79,8 @@ func mskDay() string {
 // sweepOldDays clears one user's stale rows (everything not from today's MSK day).
 // Cheap, user-scoped, indexed, self-healing — favorites are never touched.
 func sweepOldDays(uid int64) {
-	db.Exec(`DELETE FROM meal     WHERE user_id=? AND day<>`+mskDayExpr, uid)     //nolint:errcheck
-	db.Exec(`DELETE FROM ai_usage WHERE user_id=? AND day<>`+mskDayExpr, uid)     //nolint:errcheck
+	db.Exec(`DELETE FROM meal     WHERE user_id=? AND day<>`+mskDayExpr, uid) //nolint:errcheck
+	db.Exec(`DELETE FROM ai_usage WHERE user_id=? AND day<>`+mskDayExpr, uid) //nolint:errcheck
 }
 
 // ── Meals ───────────────────────────────────────────────────────────────────
@@ -290,9 +290,10 @@ func getStatus(uid int64) (Status, error) {
 }
 
 // canScan reports whether the user may run an AI op now, and a reason code if not.
-//   pro    → always allowed
-//   tester → allowed while today's uses < daily_limit  (else "daily_limit")
-//   free   → allowed while free_scans_left > 0         (else "no_scans")
+//
+//	pro    → always allowed
+//	tester → allowed while today's uses < daily_limit  (else "daily_limit")
+//	free   → allowed while free_scans_left > 0         (else "no_scans")
 func canScan(s Status, usesToday int) (bool, string) {
 	switch s.Role {
 	case "pro":
@@ -320,14 +321,14 @@ func consumeScan(uid int64, s Status) {
 	}
 }
 
-// statusLabel renders the Credits-screen "Статус" line.
+// statusLabel renders the Info-screen status line in the region's language.
 func statusLabel(s Status) string {
 	switch s.Role {
 	case "pro":
 		return "PRO · ∞"
 	case "tester":
-		return fmt.Sprintf("Тестер · %d/день", s.DailyLimit)
+		return fmt.Sprintf(region.Server.StatusTester, s.DailyLimit)
 	default:
-		return fmt.Sprintf("AI сканов: %d", s.FreeScansLeft)
+		return fmt.Sprintf(region.Server.StatusFree, s.FreeScansLeft)
 	}
 }

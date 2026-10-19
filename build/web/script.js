@@ -38,7 +38,7 @@ if (profileBtn) {
     let data = null;
     try { data = await res.json(); } catch (_) {}
     if (!res.ok) {
-      const err = new Error((data && data.error) || 'Ошибка');
+      const err = new Error((data && data.error) || TEXT.error);
       err.status = res.status;
       throw err;
     }
@@ -71,7 +71,7 @@ if (profileBtn) {
     wDrawPanel();
     snapTableToBottom();
     // A silently emptied donut/history reads like data loss — name it.
-    if (prevDay && TODAY && prevDay !== TODAY) toast('Новый день');
+    if (prevDay && TODAY && prevDay !== TODAY) toast(TEXT.newDay);
   }
 
   // ── MSK day rollover ────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ if (profileBtn) {
   function drawHistory() {
     const wrap = document.getElementById('history-rows');
     if (!MEALS.length) {
-      wrap.innerHTML = `<div class="empty">Вы еще не ном-ном сегодня</div>`;
+      wrap.innerHTML = `<div class="empty">${TEXT.noMeals}</div>`;
       return;
     }
     wrap.innerHTML = MEALS.map(m => `
@@ -162,8 +162,8 @@ if (profileBtn) {
   document.getElementById('goals-save').addEventListener('click', async e => {
     const kcal = Math.round(Number(document.getElementById('g-kcal').value));
     const prot = Math.round(Number(document.getElementById('g-prot').value));
-    if (!(kcal >= 100 && kcal <= 20000)) { toast('Калории: от 100 до 20000'); return; }
-    if (!(prot >= 10 && prot <= 1000)) { toast('Белок: от 10 до 1000 г'); return; }
+    if (!(kcal >= 100 && kcal <= 20000)) { toast(TEXT.goalKcalRange); return; }
+    if (!(prot >= 10 && prot <= 1000)) { toast(TEXT.goalProtRange); return; }
     const btn = e.currentTarget;
     btn.disabled = true;
     try {
@@ -171,7 +171,7 @@ if (profileBtn) {
       GOALS = { kcal, prot };
       closeOverlay('overlay-goals');
       drawToday();
-      toast('Цели сохранены');
+      toast(TEXT.goalsSaved);
     } catch (err) { toast(err.message); }
     finally { btn.disabled = false; }
   });
@@ -195,7 +195,7 @@ if (profileBtn) {
     } else {
       fallback();
     }
-    toast('Email скопирован'); // don't await the write — some webviews never settle it
+    toast(TEXT.emailCopied); // don't await the write — some webviews never settle it
   });
 
   // ══ Weight tab (skeleton/weight) ═══════════════════════════════════════════
@@ -205,12 +205,12 @@ if (profileBtn) {
 
   // 'YYYY-MM-DD' → Date without UTC-parsing pitfalls
   const wDate = day => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d); };
-  const wFmt = day => wDate(day).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' });
+  const wFmt = day => wDate(day).toLocaleDateString(LOCALE, { month: 'short', day: 'numeric' });
 
   // today input + history table (today is "row 1" — the input card above the head)
   function wDrawPanel() {
     const todays = WEIGHTS.find(w => w.day === TODAY);
-    document.getElementById('w-today-date').textContent = TODAY ? wFmt(TODAY) : 'Сегодня';
+    document.getElementById('w-today-date').textContent = TODAY ? wFmt(TODAY) : TEXT.today;
     const input = document.getElementById('w-input');
     if (todays && document.activeElement !== input) input.value = todays.kg.toFixed(1);
 
@@ -218,13 +218,13 @@ if (profileBtn) {
     // in addition to the big input card above the head
     document.getElementById('w-rows').innerHTML = WEIGHTS.length ? WEIGHTS.map(w => `
       <div class="w-row${w.day === TODAY ? ' today' : ''}">
-        <span class="date">${w.day === TODAY ? 'Сегодня' : wFmt(w.day)}</span>
+        <span class="date">${w.day === TODAY ? TEXT.today : wFmt(w.day)}</span>
         <span class="kg-cell">
           <span class="kg">${w.kg.toFixed(1)}</span>
-          <button class="edit" data-day="${w.day}" data-kg="${w.kg.toFixed(1)}">Изменить</button>
+          <button class="edit" data-day="${w.day}" data-kg="${w.kg.toFixed(1)}">${TEXT.edit}</button>
         </span>
       </div>`).join('')
-      : `<div class="empty">Записей пока нет</div>`;
+      : `<div class="empty">${TEXT.noWeights}</div>`;
   }
 
   async function wLoadGraph() {
@@ -306,8 +306,8 @@ if (profileBtn) {
     });
 
     // x labels: weekdays / dates / months; thin out when the row gets crowded
-    const lbl = d => wPeriod === 'week' ? wDate(d).toLocaleDateString('ru-RU', { weekday: 'short' })
-               : wPeriod === 'year' ? wDate(d).toLocaleDateString('ru-RU', { month: 'short' })
+    const lbl = d => wPeriod === 'week' ? wDate(d).toLocaleDateString(LOCALE, { weekday: 'short' })
+               : wPeriod === 'year' ? wDate(d).toLocaleDateString(LOCALE, { month: 'short' })
                : wFmt(d);
     document.getElementById('w-xaxis').innerHTML =
       wPoints.map((p, i) => `<span>${i % every ? '' : lbl(p.day)}</span>`).join('');
@@ -323,13 +323,13 @@ if (profileBtn) {
   document.getElementById('w-save').addEventListener('click', async e => {
     const input = document.getElementById('w-input');
     const kg = parseFloat(input.value);
-    if (isNaN(kg) || kg <= 0 || kg > 500) { input.focus(); toast('Введи вес в кг'); return; }
+    if (isNaN(kg) || kg <= 0 || kg > 500) { input.focus(); toast(TEXT.enterWeight); return; }
     const btn = e.currentTarget;
     btn.disabled = true;
     try {
       await wSave(kg);
       input.blur();
-      toast('Вес сохранён');
+      toast(TEXT.weightSaved);
     } catch (err) { toast(err.message); }
     finally { btn.disabled = false; }
   });
@@ -337,10 +337,10 @@ if (profileBtn) {
   document.getElementById('w-rows').addEventListener('click', async e => {
     const btn = e.target.closest('.edit');
     if (!btn) return; // the extra tap required to touch history
-    const next = prompt(`Вес за ${wFmt(btn.dataset.day)} (кг)`, btn.dataset.kg);
+    const next = prompt(TEXT.weightPrompt.replace('%s', wFmt(btn.dataset.day)), btn.dataset.kg);
     if (next === null) return;
     const kg = parseFloat(String(next).replace(',', '.'));
-    if (isNaN(kg) || kg <= 0 || kg > 500) { toast('Введи вес в кг'); return; }
+    if (isNaN(kg) || kg <= 0 || kg > 500) { toast(TEXT.enterWeight); return; }
     try { await wSave(kg, btn.dataset.day); } catch (err) { toast(err.message); }
   });
 
@@ -411,14 +411,14 @@ if (profileBtn) {
       await api('POST', '/api/meal', data);
       if (fav) await api('POST', '/api/favorite', data); // the star survives the dismiss too
       await loadState();
-      toast('Скан сохранён в приёмы за сегодня');
+      toast(TEXT.scanSaved);
     } catch (e) { toast(e.message); }
   }
 
   function mealPayload() {
     const num = id => Number(document.getElementById(id).value) || 0;
     return {
-      name: document.getElementById('m-name').value.trim() || 'Блюдо',
+      name: document.getElementById('m-name').value.trim() || TEXT.defaultMeal,
       kcal: num('m-kcal'), grams: num('m-grams'),
       prot: num('m-prot'), fat: num('m-fat'), carb: num('m-carb'),
     };
@@ -467,7 +467,7 @@ if (profileBtn) {
       await api('DELETE', `/api/meal/${editingId}`);
       closeMeal();
       await loadState();
-      toast('Приём удалён');
+      toast(TEXT.mealDeleted);
     } catch (e) { toast(e.message); }
   }
 
@@ -484,19 +484,19 @@ if (profileBtn) {
   function drawFav() {
     const rows = document.getElementById('fav-rows');
     if (!FAVORITES.length) {
-      rows.innerHTML = `<div class="empty">Избранного пока нет — отметь блюдо звездой ★.</div>`;
+      rows.innerHTML = `<div class="empty">${TEXT.noFavorites}</div>`;
       return;
     }
     const q = document.getElementById('fav-search').value.trim().toLowerCase();
     const list = q ? FAVORITES.filter(f => f.name.toLowerCase().includes(q)) : FAVORITES;
     if (!list.length) {
-      rows.innerHTML = `<div class="empty">Ничего не найдено.</div>`;
+      rows.innerHTML = `<div class="empty">${TEXT.notFound}</div>`;
       return;
     }
     rows.innerHTML = list.map(f => `
       <div class="fav-row${f.id === favSelected ? ' sel' : ''}" data-id="${f.id}">
         <span class="fname">${esc(f.name)}</span>
-        <span class="fg">${f.grams} г</span>
+        <span class="fg">${f.grams} ${TEXT.gramsUnit}</span>
         <span class="fk">${Number(f.kcal).toLocaleString()}</span>
       </div>`).join('');
   }
@@ -505,7 +505,7 @@ if (profileBtn) {
 
   async function deleteFav() {
     const f = selectedFav();
-    if (!f) { toast('Сначала выбери блюдо'); return; }
+    if (!f) { toast(TEXT.pickFirst); return; }
     try {
       await api('DELETE', `/api/favorite/${f.id}`);
       favSelected = null;
@@ -516,7 +516,7 @@ if (profileBtn) {
 
   async function acceptFav() {
     const f = selectedFav();
-    if (!f) { toast('Сначала выбери блюдо'); return; }
+    if (!f) { toast(TEXT.pickFirst); return; }
     try {
       await api('POST', '/api/meal', {
         name: f.name, kcal: f.kcal, grams: f.grams, prot: f.prot, fat: f.fat, carb: f.carb,
@@ -539,7 +539,13 @@ if (profileBtn) {
     // (timeout, network, 5xx) gets the generic "try again later"
     const msg = err && [402, 403, 429].includes(err.status) && err.message
       ? err.message
-      : 'Упс, что-то пошло не так. Попробуй ещё раз позже.';
+      : TEXT.scanFailed;
+    showNotice(msg);
+  }
+
+  // The scan-error popup doubles as the generic notice: centered card, dimmed
+  // backdrop, "Ok" or a tap outside closes it.
+  function showNotice(msg) {
     document.getElementById('error-text').textContent = msg;
     document.getElementById('overlay-error').classList.add('show');
   }
@@ -594,6 +600,8 @@ if (profileBtn) {
     if (!btn) return;
     const src = btn.dataset.src;
     if (src === 'manual') { openMeal(null); return; }
+    // the region has no AI scans — explain instead of opening the scan sheets
+    if ((src === 'photo' || src === 'text') && !window.AI_SCAN) { showNotice(TEXT.unavailable); return; }
     if (src === 'photo') { openOverlay('overlay-photo'); return; }
     if (src === 'text') { openOverlay('overlay-text'); return; }
     openFav();
@@ -657,7 +665,7 @@ if (profileBtn) {
 
   document.getElementById('photo-take').addEventListener('click', e => {
     const base64 = captureFrame();
-    if (!base64) { toast('Камера недоступна — выбери фото из галереи'); return; }
+    if (!base64) { toast(TEXT.noCamera); return; }
     scanPhoto(base64, e.currentTarget);
   });
 
@@ -677,7 +685,7 @@ if (profileBtn) {
   document.getElementById('text-send').addEventListener('click', async e => {
     const ta = document.getElementById('text-desc');
     const desc = ta.value.trim();
-    if (!desc) { toast('Опиши блюдо'); return; }
+    if (!desc) { toast(TEXT.describeMeal); return; }
     try {
       const result = await runScan({ mode: 'text', text: desc }, e.currentTarget);
       closeOverlay('overlay-text');
