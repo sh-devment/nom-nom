@@ -181,6 +181,7 @@ func main() {
 	mux.HandleFunc("GET /logout", handleLogout)
 	mux.HandleFunc("GET /apps", handleOpenApps)
 	mux.Handle("GET /favicon.svg", cacheStatic(fileServer))
+	mux.Handle("GET /apple-touch-icon.png", cacheStatic(fileServer))
 	mux.Handle("GET /style.css", cacheStatic(fileServer))
 	mux.Handle("GET /script.js", cacheStatic(fileServer))
 
