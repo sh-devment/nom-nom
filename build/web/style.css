@@ -381,7 +381,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .login-screen {
   height: 100dvh;
   display: flex; flex-direction: column; align-items: center;
-  padding: calc(var(--safe-top) + 24px) var(--pad) calc(var(--safe-bottom) + 20px);
+  padding: calc(var(--safe-top) + 24px) 20px calc(var(--safe-bottom) + 28px);
 }
 
 /* card sits in the top flex zone, centered within it */
